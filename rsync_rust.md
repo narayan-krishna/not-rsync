@@ -32,6 +32,10 @@ Given two computers _a_ and _b_ with access to files _A_ and _B_, where the goal
 - [the rsync algorithm](https://www.andrew.cmu.edu/course/15-749/READINGS/required/cas/tridgell96.pdf)
 - [rsync thesis](https://www.samba.org/~tridge/phd_thesis.pdf)
 
+### connection
+
+rsync connects locally by creating a fork
+
 ### testing
 
 #### locally
@@ -71,4 +75,41 @@ This authentication method is more secure than password-based authentication bec
 Encryption: The public and private keys are used for encryption and decryption during the SSH session. After the initial authentication, a symmetric encryption key is generated for the duration of the session. This symmetric key is used to encrypt the data transferred between your local machine and the remote server. However, the initial key exchange and session negotiation are encrypted using your public and private keys.
 
 This encryption ensures that even if someone intercepts the data being transmitted, they cannot decipher it without access to your private key.
+
+
+**there are two modes of connection -- local and remote**
+the communicate between client and server should always be the same
+the question is just how they are launched.
+
+main
+    run remote
+    run local
+
+run local
+    fork process
+    two pipes for two way communication
+    comms
+
+run remote
+    create ssh session
+    comms
+
+rsync comms
+
+request: compute checksums, response, receive: checksums
+request: send non-matches, response: valid/invalid file construction, confirmed shutdown
+
+main
+sync
+connection
+    remote
+    local
+
+lib
+    librsync functions
+
+connections should only be used to pass bytes.
+a separate group of functions should be used to do rsync specific opeartions, using the underlying comsm
+
+
 

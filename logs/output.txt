@@ -1,0 +1,13 @@
+59628
+[Server main] Server is up and running at 50051!
+Received a connection from 127.0.0.1:51822!
+Attempting to handle connection...
+Waiting for request message length.
+[Received] Request length of 3 bytes
+[Received] Request: SYN
+Sending 3
+Waiting for request message length.
+[Received] Request length of 8 bytes
+[Received] Request: shutdown
+Sending 14
+Finished handling connection
