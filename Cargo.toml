@@ -16,3 +16,4 @@ path = "src/server/main.rs"
 [dependencies]
 clap = { version = "4.3.22", features = ["derive"] }
 ssh2 = "0.9"
+anyhow = "1.0.75"

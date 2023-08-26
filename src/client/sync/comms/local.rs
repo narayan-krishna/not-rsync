@@ -1,67 +1,115 @@
-use super::Comms;
-use std::error::Error;
+use anyhow::{anyhow, Result};
+use rsync_rs::servicer::Servicer;
+use rsync_rs::{Server, Client};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 
-pub struct Local {
+pub struct LocalClient {
     pub server_t: Option<thread::JoinHandle<()>>,
-    pub sender: Option<Sender<String>>,
-    pub receiver: Option<Receiver<String>>,
+    pub p_send: Option<Sender<Vec<u8>>>,
+    pub p_recv: Option<Receiver<Vec<u8>>>,
 }
 
-impl Local {
-    pub fn init() -> Local {
-        Local {
+impl LocalClient {
+    pub fn init() -> LocalClient {
+        LocalClient {
             server_t: None,
-            sender: None,
-            receiver: None,
-        }
-    }
-
-    pub fn run_local_server(sender: Sender<String>, receiver: Receiver<String>) {
-        let mut quit: bool = true;
-        while quit == false {
-            let request: String = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
-
-            let response = match request.as_str() {
-                "shutdown" => {
-                    quit = true;
-                    "Shutting down!"
-                }
-                "hello" => "Hey, hows it going?",
-                _ => "Dang, I quite didn't catch that.",
-            }
-            .to_string();
-
-            sender.send(response).unwrap();
+            p_send: None,
+            p_recv: None,
         }
     }
 }
 
-impl Comms for Local {
-    fn create_connection(&mut self) -> Result<(), Box<dyn Error>> {
-        let (p_send, c_recv) = mpsc::channel::<String>();
-        let (c_send, p_recv) = mpsc::channel::<String>();
+impl Client for LocalClient {
+    fn create_connection(&mut self) -> Result<()> {
+        let (p_send, c_recv) = mpsc::channel::<Vec<u8>>();
+        let (c_send, p_recv) = mpsc::channel::<Vec<u8>>();
 
-        let server_t = thread::spawn(move || Self::run_local_server(c_send, p_recv));
+        let server_t = thread::spawn(move || {
+            let mut local_server = LocalServer::new(c_send, c_recv);
+            local_server.run().unwrap();
+        });
 
         self.server_t = Some(server_t);
-        self.sender = Some(p_send);
-        self.receiver = Some(c_recv);
+        self.p_send = Some(p_send);
+        self.p_recv = Some(p_recv);
 
         Ok(())
     }
 
-    fn request(&mut self, request: &str) -> Result<String, Box<dyn Error>> {
-        match (&self.sender, &self.receiver) {
-            (Some(sender), Some(receiver)) => {
-                sender.send(request.to_string())?;
-                let response = receiver.recv_timeout(Duration::from_secs(5))?;
-
+    fn request(&mut self, request: Vec<u8>) -> Result<Vec<u8>> {
+        match (&self.p_send, &self.p_recv) {
+            (Some(p_send), Some(p_recv)) => {
+                println!("Sending: {}", String::from_utf8(request.clone())?);
+                p_send.send(request)?;
+                let response = p_recv.recv_timeout(Duration::from_secs(5))?;
+                println!("Got response: {}", String::from_utf8(response.clone())?);
                 return Ok(response);
             }
-            _ => return Err("Sender/receiver not initialized".into()),
+            _ => return Err(anyhow!("Sender/receiver not initialized")),
         }
+    }
+}
+
+struct LocalServer {
+    c_send: Sender<Vec<u8>>,
+    c_recv: Receiver<Vec<u8>>,
+}
+
+impl LocalServer {
+    pub fn new(c_send: Sender<Vec<u8>>, c_recv: Receiver<Vec<u8>>) -> LocalServer {
+        LocalServer {
+            c_send,
+            c_recv,
+        }
+    }
+}
+
+impl Server for LocalServer {
+    fn run(&mut self) -> Result<()> {
+        let mut servicer = Servicer::new(self);
+        servicer.handle()?;
+        println!("Finished handling connection");
+        Ok(())
+    }
+
+    fn send(&mut self, response: Vec<u8>) -> Result<()> {
+        self.c_send.send(response)?;
+        Ok(())
+    }
+
+    fn receive(&mut self) -> Result<Vec<u8>> {
+        Ok(self.c_recv.recv_timeout(Duration::from_secs(5))?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_local_server_request_shutdown() {
+        let mut local = LocalClient::init();
+        local.create_connection().unwrap();
+        assert_eq!(
+            "Shutting down!",
+            String::from_utf8(local.request("shutdown".into()).unwrap()).unwrap()
+        );
+        assert!(local.request("hello".into()).is_err());
+    }
+
+    #[test]
+    fn test_local_server_request_ack() {
+        let mut local = LocalClient::init();
+        local.create_connection().unwrap();
+        assert_eq!(
+            "ACK",
+            String::from_utf8(local.request("SYN".into()).unwrap()).unwrap()
+        );
+        assert_eq!(
+            "Shutting down!",
+            String::from_utf8(local.request("shutdown".into()).unwrap()).unwrap()
+        );
     }
 }

@@ -1,5 +1,6 @@
-use std::error::Error;
-use std::io::prelude::*;
+use anyhow::Result;
+use rsync_rs::servicer::Servicer;
+use rsync_rs::Server;
 use std::net::{TcpListener, TcpStream};
 use std::process;
 use std::sync::mpsc;
@@ -19,7 +20,8 @@ fn main() {
             Ok((stream, addr)) => {
                 println!("Received a connection from {}!", addr);
                 send.send(()).unwrap();
-                handle_connection(stream).unwrap();
+                let mut server = RemoteServer::new(stream);
+                server.run().unwrap();
             }
             Err(e) => println!("Connection failed! ({})", e),
         };
@@ -41,30 +43,60 @@ fn main() {
     println!("Shutting down.")
 }
 
-fn handle_connection(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
-    let mut quit = false;
-    println!("Attempting to handle connection...");
+struct RemoteServer {
+    tcp_stream: TcpStream,
+}
 
-    while quit == false {
-        println!("Waiting for request message length.");
-        let request_len = rsync_rs::read_message_len_header(&mut stream)?;
-        let request = rsync_rs::read_message(&mut stream, request_len as usize)?;
-        println!("[Received] Request: {}", request);
+impl RemoteServer {
+    pub fn new(tcp_stream: TcpStream) -> RemoteServer {
+        RemoteServer {
+            tcp_stream,
+        }
+    }
+}
 
-        let response = match request.as_str() {
-            "SYN" => "ACK",
-            "shutdown" => {
-                quit = true;
-                "Shutting down!"
-            }
-            "hello" => "Hey, hows it going?",
-            _ => "Dang, I quite didn't catch that.",
-        };
+impl Server for RemoteServer {
+    fn run(&mut self) -> Result<()> {
+        println!("Attempting to handle connection...");
 
-        rsync_rs::write_message_len(&mut stream, response)?;
-        rsync_rs::write_message(&mut stream, response)?;
+        let mut servicer = Servicer::new(self);
+        servicer.handle()?;
+
+        println!("Finished handling connection");
+        Ok(())
     }
 
-    println!("Finished handling connection");
-    Ok(())
+    fn receive(&mut self) -> Result<Vec<u8>> {
+        let request_len = rsync_rs::read_message_len_header(&mut self.tcp_stream)?;
+        let request = rsync_rs::read_message(&mut self.tcp_stream, request_len as usize)?;
+
+        Ok(request)
+    }
+
+    fn send(&mut self, response: Vec<u8>) -> Result<()> {
+        rsync_rs::write_message_len(&mut self.tcp_stream, &response)?;
+        rsync_rs::write_message(&mut self.tcp_stream, response)?;
+
+        Ok(())
+    }
 }
+
+// two servers, a local server and a remote server
+// both should provide the same interface for receiving and sending requests, so that
+// they can send their first request off to a servicer and the servicer should be able to handle
+// everything
+//
+// i have trait request for comms. request allows universal request from clients specifically
+//
+// trait:
+//  client
+//  server
+//
+// proj hierarchy:
+//  client
+//  server
+//  sync
+//  lib.rs
+//      - client trait
+//      - server trait
+//

@@ -1,31 +1,28 @@
-use ssh2::{Channel, Session};
-use std::error::Error;
 use std::io::prelude::*;
 use std::net::TcpStream;
-use std::thread;
-use std::time::Duration;
-
-use super::Comms;
+use anyhow::{anyhow, Result};
+use ssh2::{Channel, Session};
+use rsync_rs::Client;
 
 const LAUNCH_CMD: &str = "cd /home/knara/dev/rust/rsync-rs/ && cargo run --bin server | tee /home/knara/dev/rust/rsync-rs/logs/output.txt &";
 const SERVER_PORT: u16 = 50051;
 
-pub struct Remote {
+pub struct RemoteClient {
     session_channel: Option<Channel>,
     forwarding_channel: Option<Channel>,
     server_pid: Option<u32>,
 }
 
-impl Remote {
-    pub fn init() -> Remote {
-        Remote {
+impl RemoteClient {
+    pub fn init() -> RemoteClient {
+        RemoteClient {
             session_channel: None,
             forwarding_channel: None,
             server_pid: None,
         }
     }
 
-    fn start_ssh_session() -> Result<Session, Box<dyn Error>> {
+    fn start_ssh_session() -> Result<Session> {
         println!("Attempting to start ssh session");
         let mut sess: Session = Session::new()?;
 
@@ -41,9 +38,9 @@ impl Remote {
     }
 }
 
-impl Comms for Remote {
+impl Client for RemoteClient {
     /// Run the remote server and communicate with it.
-    fn create_connection(&mut self) -> Result<(), Box<dyn Error>> {
+    fn create_connection(&mut self) -> Result<()> {
         let sess = Self::start_ssh_session()?;
         println!("Launching server!");
         self.session_channel = Some(sess.channel_session()?);
@@ -69,15 +66,15 @@ impl Comms for Remote {
     }
 
     /// Get response from the server by sending a request
-    fn request(&mut self, request: &str) -> Result<String, Box<dyn Error>> {
+    fn request(&mut self, request: Vec<u8>) -> Result<Vec<u8>> {
         if let Some(channel) = &mut self.forwarding_channel {
-            rsync_rs::write_message_len(channel, request)?;
+            rsync_rs::write_message_len(channel, &request)?;
             rsync_rs::write_message(channel, request)?;
             let response_len = rsync_rs::read_message_len_header(channel)?;
             return Ok(rsync_rs::read_message(channel, response_len as usize)?);
         }
 
-        Err("connection not established".into())
+        Err(anyhow!("connection not established"))
     }
 }
 
@@ -88,17 +85,26 @@ mod tests {
 
     #[test]
     fn test_remote_server_request_shutdown() {
-        let mut remote = Remote::init();
+        let mut remote = RemoteClient::init();
         remote.create_connection().unwrap();
-        assert_eq!("Shutting down!", remote.request("shutdown").unwrap());
-        assert!(remote.request("hello").is_err());
+        assert_eq!(
+            "Shutting down!",
+            String::from_utf8(remote.request("shutdown".into()).unwrap()).unwrap()
+        );
+        assert!(remote.request("hello".into()).is_err());
     }
 
     #[test]
     fn test_remote_server_request_ack() {
-        let mut remote = Remote::init();
+        let mut remote = RemoteClient::init();
         remote.create_connection().unwrap();
-        assert_eq!("ACK", remote.request("SYN").unwrap());
-        assert_eq!("Shutting down!", remote.request("shutdown").unwrap());
+        assert_eq!(
+            "ACK",
+            String::from_utf8(remote.request("SYN".into()).unwrap()).unwrap()
+        );
+        assert_eq!(
+            "Shutting down!",
+            String::from_utf8(remote.request("shutdown".into()).unwrap()).unwrap()
+        );
     }
 }

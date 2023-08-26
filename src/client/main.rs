@@ -1,5 +1,7 @@
-use clap::Parser;
 mod sync;
+
+use clap::Parser;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -13,6 +15,8 @@ struct Args {
 fn main() {
     // parse command line args
     println!("Running client!");
-    sync::sync().unwrap();
+    sync::sync(PathBuf::from(
+        r"/home/knara/dev/rust/rsync-rs/logs/output.txt",
+    ))
+    .unwrap();
 }
-
