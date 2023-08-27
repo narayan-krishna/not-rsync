@@ -1,7 +1,6 @@
-use anyhow::Result;
-use rsync_rs::servicer::Servicer;
+use rsync_rs::remote::RemoteServer;
 use rsync_rs::Server;
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpListener;
 use std::process;
 use std::sync::mpsc;
 use std::thread;
@@ -41,44 +40,6 @@ fn main() {
     }
 
     println!("Shutting down.")
-}
-
-struct RemoteServer {
-    tcp_stream: TcpStream,
-}
-
-impl RemoteServer {
-    pub fn new(tcp_stream: TcpStream) -> RemoteServer {
-        RemoteServer {
-            tcp_stream,
-        }
-    }
-}
-
-impl Server for RemoteServer {
-    fn run(&mut self) -> Result<()> {
-        println!("Attempting to handle connection...");
-
-        let mut servicer = Servicer::new(self);
-        servicer.handle()?;
-
-        println!("Finished handling connection");
-        Ok(())
-    }
-
-    fn receive(&mut self) -> Result<Vec<u8>> {
-        let request_len = rsync_rs::read_message_len_header(&mut self.tcp_stream)?;
-        let request = rsync_rs::read_message(&mut self.tcp_stream, request_len as usize)?;
-
-        Ok(request)
-    }
-
-    fn send(&mut self, response: Vec<u8>) -> Result<()> {
-        rsync_rs::write_message_len(&mut self.tcp_stream, &response)?;
-        rsync_rs::write_message(&mut self.tcp_stream, response)?;
-
-        Ok(())
-    }
 }
 
 // two servers, a local server and a remote server

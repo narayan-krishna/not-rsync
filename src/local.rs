@@ -1,6 +1,8 @@
+use super::servicer::Servicer;
+use super::{Client, Server};
+/// Provides structs/APIs for creating local sync clients and servers.
+/// Client and server communicate through mpsc message passing channel.
 use anyhow::{anyhow, Result};
-use rsync_rs::servicer::Servicer;
-use rsync_rs::{Server, Client};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 use std::time::Duration;
@@ -59,10 +61,7 @@ struct LocalServer {
 
 impl LocalServer {
     pub fn new(c_send: Sender<Vec<u8>>, c_recv: Receiver<Vec<u8>>) -> LocalServer {
-        LocalServer {
-            c_send,
-            c_recv,
-        }
+        LocalServer { c_send, c_recv }
     }
 }
 

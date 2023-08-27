@@ -1,6 +1,6 @@
-85280
+92287
 [Server main] Server is up and running at 50051!
-Received a connection from 127.0.0.1:48236!
+Received a connection from 127.0.0.1:48584!
 Attempting to handle connection...
 [Received] Request length of 8 bytes
 Sending 14

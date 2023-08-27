@@ -1,8 +1,10 @@
-use std::io::prelude::*;
-use std::net::TcpStream;
+use super::{servicer::Servicer, *};
 use anyhow::{anyhow, Result};
 use ssh2::{Channel, Session};
-use rsync_rs::Client;
+/// Provides structs/APIs for creating remote sync clients and servers.
+/// Client and server communicate through SSH session/port forwarding.
+use std::io::prelude::*;
+use std::net::TcpStream;
 
 const LAUNCH_CMD: &str = "cd /home/knara/dev/rust/rsync-rs/ && cargo run --bin server | tee /home/knara/dev/rust/rsync-rs/logs/output.txt &";
 const SERVER_PORT: u16 = 50051;
@@ -68,13 +70,49 @@ impl Client for RemoteClient {
     /// Get response from the server by sending a request
     fn request(&mut self, request: Vec<u8>) -> Result<Vec<u8>> {
         if let Some(channel) = &mut self.forwarding_channel {
-            rsync_rs::write_message_len(channel, &request)?;
-            rsync_rs::write_message(channel, request)?;
-            let response_len = rsync_rs::read_message_len_header(channel)?;
-            return Ok(rsync_rs::read_message(channel, response_len as usize)?);
+            write_message_len(channel, &request)?;
+            write_message(channel, request)?;
+            let response_len = read_message_len_header(channel)?;
+            return Ok(read_message(channel, response_len as usize)?);
         }
 
         Err(anyhow!("connection not established"))
+    }
+}
+
+pub struct RemoteServer {
+    tcp_stream: TcpStream,
+}
+
+impl RemoteServer {
+    pub fn new(tcp_stream: TcpStream) -> RemoteServer {
+        RemoteServer { tcp_stream }
+    }
+}
+
+impl Server for RemoteServer {
+    fn run(&mut self) -> Result<()> {
+        println!("Attempting to handle connection...");
+
+        let mut servicer = Servicer::new(self);
+        servicer.handle()?;
+
+        println!("Finished handling connection");
+        Ok(())
+    }
+
+    fn receive(&mut self) -> Result<Vec<u8>> {
+        let request_len = read_message_len_header(&mut self.tcp_stream)?;
+        let request = read_message(&mut self.tcp_stream, request_len as usize)?;
+
+        Ok(request)
+    }
+
+    fn send(&mut self, response: Vec<u8>) -> Result<()> {
+        write_message_len(&mut self.tcp_stream, &response)?;
+        write_message(&mut self.tcp_stream, response)?;
+
+        Ok(())
     }
 }
 

@@ -1,6 +1,8 @@
 use anyhow::Result;
 use std::io::prelude::*;
 
+pub mod local;
+pub mod remote;
 pub mod servicer;
 
 pub trait Server {

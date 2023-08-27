@@ -1,8 +1,5 @@
-mod comms;
-
 use anyhow::Result;
-use comms::{local::LocalClient, remote::RemoteClient};
-use rsync_rs::Client;
+use rsync_rs::{local::LocalClient, remote::RemoteClient, Client};
 use std::path::PathBuf;
 
 enum ServerType {
@@ -22,8 +19,8 @@ pub fn sync(filepath: PathBuf) -> Result<()> {
     client.create_connection()?;
     let _connection_ok = check_connection(&mut client)?;
     let _send_filepath = send_filepath(&mut client, filepath)?;
-    // send a syn to the server, hopefully receive an acks
-    // let signature = request_signature(client)?;
+    let _signature = request_signature(&mut client)?;
+    let _shutdown_ok = request_shutdown(&mut client)?;
     // let delta = calculate_delta(base_filepath, signature)
     // let remote_patch_ok = request_remote(client, delta)?;
 
@@ -47,10 +44,20 @@ fn send_filepath(client: &mut Box<dyn Client>, filepath: PathBuf) -> Result<()> 
     Ok(())
 }
 
-// fn request_signature(client: &mut Box<dyn Client>, filepath: PathBuf) -> Result<Signature, Box<dyn Error>> {
-//     let str_path = filepath.to_str().unwrap();
-//     assert_eq!(String::from_utf8(client.request("filepath".into())?)?, "Ready for filepath");
-//     assert_eq!(String::from_utf8(client.request(str_path.into())?)?, format!("Received {}", str_path));
-//     let signature = client.request("signature".into())?;
-//     Ok(())
-// }
+fn request_signature(client: &mut Box<dyn Client>) -> Result<()> {
+    let signature = client.request("signature".into())?;
+    assert_eq!(
+        String::from_utf8(signature)?,
+        "calculating signature"
+    );
+    Ok(())
+}
+
+fn request_shutdown(client: &mut Box<dyn Client>) -> Result<()> {
+    assert_eq!(
+        String::from_utf8(client.request("shutdown".into())?)?,
+        "Shutting down!"
+    );
+
+    Ok(())
+}

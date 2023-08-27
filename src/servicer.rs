@@ -1,5 +1,5 @@
-use crate::Server;
 /// Utils for the server, whether on a remote machine (SSH), or an adjacent thread for local transport.
+use super::Server;
 use anyhow::Result;
 use std::path::PathBuf;
 
@@ -27,10 +27,12 @@ where
         while quit == false {
             let request = self.server.receive()?;
 
+            // TODO: make this functions promise to return a response
             let _handle_lookup = match String::from_utf8(request)?.as_str() {
                 "SYN" => self.send_str_response("ACK"),
                 "hello" => self.send_str_response("Hey, hows it going?"),
                 "filepath" => self.receive_filepath(),
+                "signature" => self.calculate_signature(),
                 "shutdown" => {
                     quit = true;
                     self.send_str_response("Shutting down!")
@@ -48,10 +50,27 @@ where
     }
 
     fn receive_filepath(&mut self) -> Result<()> {
+        self.send_str_response("ready for filepath")?;
+        let filepath = self.server.receive()?;
+        self.filepath = Some(String::from_utf8(filepath)?.into());
+        self.server.send(
+            format!(
+                "received {}",
+                self.filepath.clone().unwrap().to_str().unwrap()
+            )
+            .into(),
+        )?;
+
         Ok(())
     }
 
     fn calculate_signature(&mut self) -> Result<()> {
+        if let Some(_) = &self.filepath {
+            self.send_str_response("calculating signature")?;
+        } else {
+            self.send_str_response("no valid filepath")?;
+        }
+
         Ok(())
     }
 
