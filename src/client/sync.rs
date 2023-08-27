@@ -46,10 +46,7 @@ fn send_filepath(client: &mut Box<dyn Client>, filepath: PathBuf) -> Result<()> 
 
 fn request_signature(client: &mut Box<dyn Client>) -> Result<()> {
     let signature = client.request("signature".into())?;
-    assert_eq!(
-        String::from_utf8(signature)?,
-        "calculating signature"
-    );
+    assert_eq!(String::from_utf8(signature)?, "calculating signature");
     Ok(())
 }
 

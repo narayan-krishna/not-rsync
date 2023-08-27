@@ -1,8 +1,8 @@
+/// Provides structs/APIs for creating remote sync clients and servers.
+/// Client and server communicate through SSH session/port forwarding.
 use super::{servicer::Servicer, *};
 use anyhow::{anyhow, Result};
 use ssh2::{Channel, Session};
-/// Provides structs/APIs for creating remote sync clients and servers.
-/// Client and server communicate through SSH session/port forwarding.
 use std::io::prelude::*;
 use std::net::TcpStream;
 

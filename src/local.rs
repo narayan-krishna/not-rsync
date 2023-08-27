@@ -1,7 +1,7 @@
-use super::servicer::Servicer;
-use super::{Client, Server};
 /// Provides structs/APIs for creating local sync clients and servers.
 /// Client and server communicate through mpsc message passing channel.
+use super::servicer::Servicer;
+use super::{Client, Server};
 use anyhow::{anyhow, Result};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
