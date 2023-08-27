@@ -16,7 +16,7 @@ pub struct RemoteClient {
 }
 
 impl RemoteClient {
-    pub fn init() -> RemoteClient {
+    pub fn new() -> RemoteClient {
         RemoteClient {
             session_channel: None,
             forwarding_channel: None,
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_remote_server_request_shutdown() {
-        let mut remote = RemoteClient::init();
+        let mut remote = RemoteClient::new();
         remote.create_connection().unwrap();
         assert_eq!(
             "Shutting down!",
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_remote_server_request_ack() {
-        let mut remote = RemoteClient::init();
+        let mut remote = RemoteClient::new();
         remote.create_connection().unwrap();
         assert_eq!(
             "ACK",
