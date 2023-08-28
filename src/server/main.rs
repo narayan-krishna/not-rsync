@@ -41,23 +41,3 @@ fn main() {
 
     println!("Shutting down.")
 }
-
-// two servers, a local server and a remote server
-// both should provide the same interface for receiving and sending requests, so that
-// they can send their first request off to a servicer and the servicer should be able to handle
-// everything
-//
-// i have trait request for comms. request allows universal request from clients specifically
-//
-// trait:
-//  client
-//  server
-//
-// proj hierarchy:
-//  client
-//  server
-//  sync
-//  lib.rs
-//      - client trait
-//      - server trait
-//
