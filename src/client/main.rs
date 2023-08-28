@@ -1,5 +1,6 @@
 mod sync;
 
+use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -12,11 +13,13 @@ struct Args {
 }
 
 /// Runs the rsync-rs client for syncing a file to a server.
-fn main() {
+fn main() -> Result<()> {
     // parse command line args
     println!("Running client!");
-    sync::sync(PathBuf::from(
-        r"/home/knara/dev/rust/rsync-rs/logs/output.txt",
-    ))
-    .unwrap();
+    sync::sync(
+        PathBuf::from(r"/home/knara/dev/rust/rsync-rs/tests/base.txt"),
+        PathBuf::from(r"/home/knara/dev/rust/rsync-rs/tests/modified.txt"),
+    )?;
+
+    Ok(())
 }

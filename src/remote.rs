@@ -1,9 +1,9 @@
-/// Provides structs/APIs for creating remote sync clients and servers.
-/// Client and server communicate through SSH session/port forwarding.
+//! Provides structs/APIs for creating remote sync clients and servers.
+//! Client and server communicate through SSH session/port forwarding.
+
 use super::{servicer::Servicer, *};
 use anyhow::{anyhow, Result};
 use ssh2::{Channel, Session};
-use std::io::prelude::*;
 use std::net::TcpStream;
 
 const LAUNCH_CMD: &str = "cd /home/knara/dev/rust/rsync-rs/ && cargo run --bin server | tee /home/knara/dev/rust/rsync-rs/logs/output.txt &";

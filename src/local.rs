@@ -1,5 +1,6 @@
-/// Provides structs/APIs for creating local sync clients and servers.
-/// Client and server communicate through mpsc message passing channel.
+//! Provides structs/APIs for creating local sync clients and servers.
+//! Client and server communicate through mpsc message passing channel.
+
 use super::servicer::Servicer;
 use super::{Client, Server};
 use anyhow::{anyhow, Result};
@@ -14,7 +15,7 @@ pub struct LocalClient {
 }
 
 impl LocalClient {
-    pub fn init() -> LocalClient {
+    pub fn new() -> LocalClient {
         LocalClient {
             server_t: None,
             p_send: None,
@@ -89,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_local_server_request_shutdown() {
-        let mut local = LocalClient::init();
+        let mut local = LocalClient::new();
         local.create_connection().unwrap();
         assert_eq!(
             "Shutting down!",
@@ -100,7 +101,7 @@ mod tests {
 
     #[test]
     fn test_local_server_request_ack() {
-        let mut local = LocalClient::init();
+        let mut local = LocalClient::new();
         local.create_connection().unwrap();
         assert_eq!(
             "ACK",

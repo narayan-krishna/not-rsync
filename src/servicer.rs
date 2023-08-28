@@ -1,6 +1,10 @@
-/// Utils for the server, whether on a remote machine (SSH), or an adjacent thread for local transport.
+//! Utils for the server, whether on a remote machine (SSH), or an adjacent thread for local transport.
+
 use super::Server;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use fast_rsync::{apply, Signature, SignatureOptions};
+use std::fs::{File, OpenOptions};
+use std::io::{prelude::*, SeekFrom};
 use std::path::PathBuf;
 
 pub struct Servicer<'a, T>
@@ -28,17 +32,18 @@ where
             let request = self.server.receive()?;
 
             // TODO: make this functions promise to return a response
-            let _handle_lookup = match String::from_utf8(request)?.as_str() {
+            match String::from_utf8(request)?.as_str() {
                 "SYN" => self.send_str_response("ACK"),
                 "hello" => self.send_str_response("Hey, hows it going?"),
                 "filepath" => self.receive_filepath(),
                 "signature" => self.calculate_signature(),
+                "patch" => self.apply_patch(),
                 "shutdown" => {
                     quit = true;
                     self.send_str_response("Shutting down!")
                 }
                 _ => self.send_str_response("Dang, I quite didn't catch that."),
-            };
+            }?;
         }
 
         Ok(())
@@ -65,16 +70,60 @@ where
     }
 
     fn calculate_signature(&mut self) -> Result<()> {
-        if let Some(_) = &self.filepath {
-            self.send_str_response("calculating signature")?;
-        } else {
-            self.send_str_response("no valid filepath")?;
+        if let Some(filepath) = &self.filepath {
+            let mut file = match File::open(filepath) {
+                Err(e) => {
+                    self.send_str_response(format!("Couldn't open from filepath {}", e).as_str())?;
+                    return Err(anyhow!("Error: {}", e));
+                }
+                Ok(file) => file,
+            };
+
+            let mut file_bytes: Vec<u8> = Vec::new();
+            match file.read_to_end(&mut file_bytes) {
+                Err(e) => {
+                    self.send_str_response(format!("Couldn't open from filepath {}", e).as_str())?;
+                    return Err(anyhow!("Error: {}", e));
+                }
+                Ok(_) => {
+                    let signature_options = SignatureOptions {
+                        block_size: 4,
+                        crypto_hash_size: 8,
+                    };
+                    let response_signature = Signature::calculate(&file_bytes, signature_options);
+                    self.server
+                        .send(Signature::serialized(&response_signature).to_vec())?;
+                }
+            };
         }
 
+        self.send_str_response("failed")?;
         Ok(())
     }
 
-    fn apply_delta(&self, delta: Vec<u8>) -> Result<()> {
+    fn apply_patch(&mut self) -> Result<()> {
+        self.send_str_response("ready for patch")?;
+        let patch = self.server.receive()?;
+        self.send_str_response("received patch")?;
+        let mut patched_out = vec![];
+
+        if let Some(filepath) = &self.filepath {
+            let mut file = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(false)
+                .open(filepath)?;
+            let mut file_bytes: Vec<u8> = Vec::new();
+            file.read_to_end(&mut file_bytes)?;
+            apply(&file_bytes, &patch, &mut patched_out)?;
+
+            file.seek(SeekFrom::Start(0))?;
+            file.set_len(0)
+                .unwrap_or_else(|e| println!("some whack error{e}"));
+            file.write_all(&patched_out)
+                .unwrap_or_else(|e| println!("couldn't write to file: {e}"));
+        }
+
         Ok(())
     }
 }
