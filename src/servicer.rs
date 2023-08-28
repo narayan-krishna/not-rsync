@@ -93,11 +93,13 @@ where
                     let response_signature = Signature::calculate(&file_bytes, signature_options);
                     self.server
                         .send(Signature::serialized(&response_signature).to_vec())?;
+                    println!("[Server] sent serialized signature");
                 }
             };
+        } else {
+            self.send_str_response("failed")?;
         }
 
-        self.send_str_response("failed")?;
         Ok(())
     }
 

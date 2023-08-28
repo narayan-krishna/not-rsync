@@ -3,6 +3,11 @@ mod sync;
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
+use sync::Location;
+
+/// arg might look like
+/// rsync-rs knara@localhost:src/
+///
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -16,9 +21,19 @@ struct Args {
 fn main() -> Result<()> {
     // parse command line args
     println!("Running client!");
+    // let args = Args::parse();
+
     sync::sync(
-        PathBuf::from(r"/home/knara/dev/rust/rsync-rs/tests/base.txt"),
-        PathBuf::from(r"/home/knara/dev/rust/rsync-rs/tests/modified.txt"),
+        Location::new(
+            "knara",
+            "localhost",
+            "dev/rust/rsync-rs/tests/test_files/base.txt",
+        ),
+        Location::new(
+            "knara",
+            "localhost",
+            "dev/rust/rsync-rs/tests/test_files/modified.txt",
+        ),
     )?;
 
     Ok(())

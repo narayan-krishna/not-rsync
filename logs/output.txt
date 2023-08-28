@@ -1,13 +1,13 @@
-127241
+134893
 [Server main] Server is up and running at 50051!
-Received a connection from 127.0.0.1:33588!
+Received a connection from 127.0.0.1:44378!
 Attempting to handle connection...
 [Received] Request length of 3 bytes
 Sending 3
 [Received] Request length of 8 bytes
 Sending 18
-[Received] Request length of 48 bytes
-Sending 57
+[Received] Request length of 59 bytes
+Sending 68
 [Received] Request length of 9 bytes
 Sending 60
 [Received] Request length of 5 bytes

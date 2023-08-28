@@ -44,10 +44,14 @@ impl Client for LocalClient {
     fn request(&mut self, request: Vec<u8>) -> Result<Vec<u8>> {
         match (&self.p_send, &self.p_recv) {
             (Some(p_send), Some(p_recv)) => {
-                println!("Sending: {}", String::from_utf8(request.clone())?);
+                println!("[Client] Sending: {}", String::from_utf8(request.clone())?);
                 p_send.send(request)?;
-                let response = p_recv.recv_timeout(Duration::from_secs(5))?;
-                println!("Got response: {}", String::from_utf8(response.clone())?);
+                let response = p_recv.recv_timeout(Duration::from_secs(10))?;
+                println!(
+                    "[Client] Got response: {}",
+                    String::from_utf8(response.clone())
+                        .unwrap_or("Response can't be decoded".to_string())
+                );
                 return Ok(response);
             }
             _ => return Err(anyhow!("Sender/receiver not initialized")),

@@ -10,26 +10,50 @@ enum ServerType {
     Remote,
 }
 
-// make this a struct, impl drop for sync
+pub struct Location {
+    username: String,
+    hostname: String,
+    filepath: PathBuf,
+    is_remote: bool,
+}
+
+impl Location {
+    pub fn new(username: &str, hostname: &str, filepath: &str) -> Location {
+        let user_prefix = format!("/home/{}", username);
+
+        Location {
+            username: username.to_string(),
+            hostname: hostname.to_string(),
+            filepath: PathBuf::from(user_prefix).join::<PathBuf>(filepath.into()),
+            is_remote: hostname != whoami::hostname() && hostname != "localhost",
+        }
+    }
+}
 
 /// Perform file synchronization operations between client and server.
-pub fn sync(base_filepath: PathBuf, target_filepath: PathBuf) -> Result<()> {
-    let server_type = ServerType::Remote;
+pub fn sync(src: Location, dest: Location) -> Result<()> {
+    println!("remote dest: {}", dest.is_remote);
+    println!("full dest filepath: {}", dest.filepath.to_str().unwrap());
+    println!("full src filepath: {}", src.filepath.to_str().unwrap());
 
-    // connection should have trait connection
+    let server_type = match dest.is_remote {
+        true => ServerType::Remote,
+        false => ServerType::Local,
+    };
+
     let mut client: Box<dyn Client> = match server_type {
-        ServerType::Remote => Box::new(RemoteClient::new()),
+        ServerType::Remote => Box::new(RemoteClient::new(dest.username, dest.hostname)),
         ServerType::Local => Box::new(LocalClient::new()),
     };
 
     client.create_connection()?;
     let _connection_ok = check_connection(&mut client)?;
-    let _send_filepath = send_filepath(&mut client, target_filepath)?;
+    let _send_filepath = send_filepath(&mut client, dest.filepath)?;
     let signature = request_signature(&mut client)?;
-    let patch: Vec<u8> = calculate_delta(base_filepath, signature)?;
+    let patch: Vec<u8> = calculate_delta(src.filepath, signature)?;
     let _remote_patch_ok = send_patch(&mut client, patch)?;
-
     let _shutdown_ok = request_shutdown(&mut client)?;
+
     Ok(())
 }
 

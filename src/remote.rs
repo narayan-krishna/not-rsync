@@ -13,26 +13,30 @@ pub struct RemoteClient {
     session_channel: Option<Channel>,
     forwarding_channel: Option<Channel>,
     server_pid: Option<u32>,
+    username: String,
+    hostname: String,
 }
 
 impl RemoteClient {
-    pub fn new() -> RemoteClient {
+    pub fn new(username: String, hostname: String) -> RemoteClient {
         RemoteClient {
             session_channel: None,
             forwarding_channel: None,
             server_pid: None,
+            username,
+            hostname,
         }
     }
 
-    fn start_ssh_session() -> Result<Session> {
+    fn start_ssh_session(&self) -> Result<Session> {
         println!("Attempting to start ssh session");
         let mut sess: Session = Session::new()?;
 
-        let tcp = TcpStream::connect("localhost:22").unwrap();
+        let tcp = TcpStream::connect(format!("{}:22", self.hostname)).unwrap();
         sess.set_tcp_stream(tcp);
         sess.handshake().unwrap();
 
-        sess.userauth_agent("knara")?; // TODO: automatically determine remote username
+        sess.userauth_agent(&self.username)?; // TODO: automatically determine remote username
         assert!(sess.authenticated());
         println!("Session authenticated");
 
@@ -43,7 +47,7 @@ impl RemoteClient {
 impl Client for RemoteClient {
     /// Run the remote server and communicate with it.
     fn create_connection(&mut self) -> Result<()> {
-        let sess = Self::start_ssh_session()?;
+        let sess = self.start_ssh_session()?;
         println!("Launching server!");
         self.session_channel = Some(sess.channel_session()?);
 
@@ -121,9 +125,14 @@ mod tests {
 
     use super::*;
 
+    fn setup_local_ssh_connection() -> RemoteClient {
+        let remote = RemoteClient::new("knara".to_string(), "localhost".to_string());
+        remote
+    }
+
     #[test]
     fn test_remote_server_request_shutdown() {
-        let mut remote = RemoteClient::new();
+        let mut remote = setup_local_ssh_connection();
         remote.create_connection().unwrap();
         assert_eq!(
             "Shutting down!",
@@ -134,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_remote_server_request_ack() {
-        let mut remote = RemoteClient::new();
+        let mut remote = setup_local_ssh_connection();
         remote.create_connection().unwrap();
         assert_eq!(
             "ACK",
