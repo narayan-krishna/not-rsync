@@ -1,6 +1,8 @@
 use anyhow::{anyhow, Result};
 use fast_rsync::{diff, Signature};
-use rsync_rs::{local::LocalClient, remote::RemoteClient, Client};
+use crate::remote::RemoteClient;
+use crate::local::LocalClient;
+use crate::client::Client;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -38,7 +40,7 @@ pub fn sync(src: Location, dest: Location) -> Result<()> {
 
     let server_type = match dest.is_remote {
         true => ServerType::Remote,
-        false => ServerType::Local,
+        false => ServerType::Remote,
     };
 
     let mut client: Box<dyn Client> = match server_type {

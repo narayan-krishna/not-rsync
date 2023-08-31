@@ -5,11 +5,11 @@ edition = "2021"
 
 [[bin]]
 name = "client"
-path = "src/client/main.rs"
+path = "src/bin/client.rs"
 
 [[bin]]
-name = "server"
-path = "src/server/main.rs"
+name = "remote_server"
+path = "src/bin/remote_server.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

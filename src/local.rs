@@ -1,11 +1,12 @@
 //! Provides structs/APIs for creating local sync clients and servers.
 //! Client and server communicate through mpsc message passing channel.
 
-use super::servicer::Servicer;
-use super::{Client, Server};
+use crate::client::Client;
+use crate::server::Server;
 use anyhow::{anyhow, Result};
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
+use super::servicer::Servicer;
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::time::Duration;
 
 pub struct LocalClient {
@@ -59,34 +60,6 @@ impl Client for LocalClient {
     }
 }
 
-struct LocalServer {
-    c_send: Sender<Vec<u8>>,
-    c_recv: Receiver<Vec<u8>>,
-}
-
-impl LocalServer {
-    pub fn new(c_send: Sender<Vec<u8>>, c_recv: Receiver<Vec<u8>>) -> LocalServer {
-        LocalServer { c_send, c_recv }
-    }
-}
-
-impl Server for LocalServer {
-    fn run(&mut self) -> Result<()> {
-        let mut servicer = Servicer::new(self);
-        servicer.handle()?;
-        println!("Finished handling connection");
-        Ok(())
-    }
-
-    fn send(&mut self, response: Vec<u8>) -> Result<()> {
-        self.c_send.send(response)?;
-        Ok(())
-    }
-
-    fn receive(&mut self) -> Result<Vec<u8>> {
-        Ok(self.c_recv.recv_timeout(Duration::from_secs(5))?)
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -115,5 +88,34 @@ mod tests {
             "Shutting down!",
             String::from_utf8(local.request("shutdown".into()).unwrap()).unwrap()
         );
+    }
+}
+
+pub struct LocalServer {
+    c_send: Sender<Vec<u8>>,
+    c_recv: Receiver<Vec<u8>>,
+}
+
+impl LocalServer {
+    pub fn new(c_send: Sender<Vec<u8>>, c_recv: Receiver<Vec<u8>>) -> LocalServer {
+        LocalServer { c_send, c_recv }
+    }
+}
+
+impl Server for LocalServer {
+    fn run(&mut self) -> Result<()> {
+        let mut servicer = Servicer::new(self);
+        servicer.handle()?;
+        println!("Finished handling connection");
+        Ok(())
+    }
+
+    fn send(&mut self, response: Vec<u8>) -> Result<()> {
+        self.c_send.send(response)?;
+        Ok(())
+    }
+
+    fn receive(&mut self) -> Result<Vec<u8>> {
+        Ok(self.c_recv.recv_timeout(Duration::from_secs(5))?)
     }
 }

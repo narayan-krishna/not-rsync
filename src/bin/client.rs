@@ -1,9 +1,7 @@
-mod sync;
-
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
-use sync::Location;
+use rsync_rs::sync::{self, Location};
 
 /// arg might look like
 /// rsync-rs knara@localhost:src/

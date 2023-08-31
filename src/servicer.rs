@@ -1,6 +1,6 @@
 //! Utils for the server, whether on a remote machine (SSH), or an adjacent thread for local transport.
 
-use super::Server;
+use crate::server::Server;
 use anyhow::{anyhow, Result};
 use fast_rsync::{apply, Signature, SignatureOptions};
 use std::fs::{File, OpenOptions};

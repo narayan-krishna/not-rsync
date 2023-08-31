@@ -1,12 +1,10 @@
-//! Provides structs/APIs for creating remote sync clients and servers.
-//! Client and server communicate through SSH session/port forwarding.
-
-use super::{servicer::Servicer, *};
+use crate::{*, client::Client};
 use anyhow::{anyhow, Result};
 use ssh2::{Channel, Session};
 use std::net::TcpStream;
+use crate::{servicer::Servicer, server::Server};
 
-const LAUNCH_CMD: &str = "cd /home/knara/dev/rust/rsync-rs/ && cargo run --bin server | tee /home/knara/dev/rust/rsync-rs/logs/output.txt &";
+const LAUNCH_CMD: &str = "cd /home/knara/dev/rust/rsync-rs/ && cargo run --bin remote_server | tee /home/knara/dev/rust/rsync-rs/logs/output.txt &";
 const SERVER_PORT: u16 = 50051;
 
 pub struct RemoteClient {
@@ -84,42 +82,6 @@ impl Client for RemoteClient {
     }
 }
 
-pub struct RemoteServer {
-    tcp_stream: TcpStream,
-}
-
-impl RemoteServer {
-    pub fn new(tcp_stream: TcpStream) -> RemoteServer {
-        RemoteServer { tcp_stream }
-    }
-}
-
-impl Server for RemoteServer {
-    fn run(&mut self) -> Result<()> {
-        println!("Attempting to handle connection...");
-
-        let mut servicer = Servicer::new(self);
-        servicer.handle()?;
-
-        println!("Finished handling connection");
-        Ok(())
-    }
-
-    fn receive(&mut self) -> Result<Vec<u8>> {
-        let request_len = read_message_len_header(&mut self.tcp_stream)?;
-        let request = read_message(&mut self.tcp_stream, request_len as usize)?;
-
-        Ok(request)
-    }
-
-    fn send(&mut self, response: Vec<u8>) -> Result<()> {
-        write_message_len(&mut self.tcp_stream, &response)?;
-        write_message(&mut self.tcp_stream, response)?;
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -153,5 +115,41 @@ mod tests {
             "Shutting down!",
             String::from_utf8(remote.request("shutdown".into()).unwrap()).unwrap()
         );
+    }
+}
+
+pub struct RemoteServer {
+    tcp_stream: TcpStream,
+}
+
+impl RemoteServer {
+    pub fn new(tcp_stream: TcpStream) -> RemoteServer {
+        RemoteServer { tcp_stream }
+    }
+}
+
+impl Server for RemoteServer {
+    fn run(&mut self) -> Result<()> {
+        println!("Attempting to handle connection...");
+
+        let mut servicer = Servicer::new(self);
+        servicer.handle()?;
+
+        println!("Finished handling connection");
+        Ok(())
+    }
+
+    fn receive(&mut self) -> Result<Vec<u8>> {
+        let request_len = read_message_len_header(&mut self.tcp_stream)?;
+        let request = read_message(&mut self.tcp_stream, request_len as usize)?;
+
+        Ok(request)
+    }
+
+    fn send(&mut self, response: Vec<u8>) -> Result<()> {
+        write_message_len(&mut self.tcp_stream, &response)?;
+        write_message(&mut self.tcp_stream, response)?;
+
+        Ok(())
     }
 }

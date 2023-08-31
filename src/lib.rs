@@ -1,23 +1,12 @@
+pub mod client;
+pub mod server;
+pub mod remote;
+pub mod local;
+pub mod servicer;
+pub mod sync;
+
 use anyhow::Result;
 use std::io::prelude::*;
-
-pub mod local;
-pub mod remote;
-pub mod servicer;
-
-pub trait Server {
-    /// receive a request from the client and send a response
-    fn run(&mut self) -> Result<()>;
-    fn receive(&mut self) -> Result<Vec<u8>>;
-    fn send(&mut self, response: Vec<u8>) -> Result<()>;
-}
-
-pub trait Client {
-    /// create a connection to a local or remote server
-    fn create_connection(&mut self) -> Result<()>;
-    /// make a request to the server and receive a response
-    fn request(&mut self, request: Vec<u8>) -> Result<Vec<u8>>;
-}
 
 pub fn read_message_len_header<T>(buf: &mut T) -> Result<u32>
 where

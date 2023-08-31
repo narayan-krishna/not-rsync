@@ -1,10 +1,10 @@
-use rsync_rs::remote::RemoteServer;
-use rsync_rs::Server;
 use std::net::TcpListener;
 use std::process;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use rsync_rs::remote::RemoteServer;
+use rsync_rs::server::Server;
 
 const PORT: u16 = 50051;
 
