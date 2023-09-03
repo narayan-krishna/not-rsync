@@ -60,36 +60,6 @@ impl Client for LocalClient {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_local_server_request_shutdown() {
-        let mut local = LocalClient::new();
-        local.create_connection().unwrap();
-        assert_eq!(
-            "Shutting down!",
-            String::from_utf8(local.request("shutdown".into()).unwrap()).unwrap()
-        );
-        assert!(local.request("hello".into()).is_err());
-    }
-
-    #[test]
-    fn test_local_server_request_ack() {
-        let mut local = LocalClient::new();
-        local.create_connection().unwrap();
-        assert_eq!(
-            "ACK",
-            String::from_utf8(local.request("SYN".into()).unwrap()).unwrap()
-        );
-        assert_eq!(
-            "Shutting down!",
-            String::from_utf8(local.request("shutdown".into()).unwrap()).unwrap()
-        );
-    }
-}
-
 pub struct LocalServer {
     c_send: Sender<Vec<u8>>,
     c_recv: Receiver<Vec<u8>>,
@@ -116,5 +86,35 @@ impl Server for LocalServer {
 
     fn receive(&mut self) -> Result<Vec<u8>> {
         Ok(self.c_recv.recv_timeout(Duration::from_secs(5))?)
+    }
+}
+
+#[cfg(test)]
+mod local_tests {
+    use super::*;
+
+    #[test]
+    fn test_local_server_request_shutdown() {
+        let mut local = LocalClient::new();
+        local.create_connection().unwrap();
+        assert_eq!(
+            "Shutting down!",
+            String::from_utf8(local.request("shutdown".into()).unwrap()).unwrap()
+        );
+        assert!(local.request("hello".into()).is_err());
+    }
+
+    #[test]
+    fn test_local_server_request_ack() {
+        let mut local = LocalClient::new();
+        local.create_connection().unwrap();
+        assert_eq!(
+            "ACK",
+            String::from_utf8(local.request("SYN".into()).unwrap()).unwrap()
+        );
+        assert_eq!(
+            "Shutting down!",
+            String::from_utf8(local.request("shutdown".into()).unwrap()).unwrap()
+        );
     }
 }
