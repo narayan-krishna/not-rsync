@@ -1,10 +1,10 @@
-use crate::{*, client::Client};
+use crate::{client::Client, *};
+use crate::{server::Server, servicer::Servicer};
 use anyhow::{anyhow, Result};
 use ssh2::{Channel, Session};
 use std::net::TcpStream;
-use crate::{servicer::Servicer, server::Server};
 
-const LAUNCH_CMD: &str = "cd /home/knara/dev/rust/rsync-rs/ && cargo run --bin remote_server | tee /home/knara/dev/rust/rsync-rs/logs/output.txt &";
+const LAUNCH_CMD: &str = "cd /home/knara/dev/rust/not-rsync/ && cargo run --bin remote_server | tee /home/knara/dev/rust/not-rsync/logs/output.txt &";
 const SERVER_PORT: u16 = 50051;
 
 pub struct RemoteClient {
@@ -82,42 +82,6 @@ impl Client for RemoteClient {
     }
 }
 
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    fn setup_local_ssh_connection() -> RemoteClient {
-        let remote = RemoteClient::new("knara".to_string(), "localhost".to_string());
-        remote
-    }
-
-    #[test]
-    fn test_remote_server_request_shutdown() {
-        let mut remote = setup_local_ssh_connection();
-        remote.create_connection().unwrap();
-        assert_eq!(
-            "Shutting down!",
-            String::from_utf8(remote.request("shutdown".into()).unwrap()).unwrap()
-        );
-        assert!(remote.request("hello".into()).is_err());
-    }
-
-    #[test]
-    fn test_remote_server_request_ack() {
-        let mut remote = setup_local_ssh_connection();
-        remote.create_connection().unwrap();
-        assert_eq!(
-            "ACK",
-            String::from_utf8(remote.request("SYN".into()).unwrap()).unwrap()
-        );
-        assert_eq!(
-            "Shutting down!",
-            String::from_utf8(remote.request("shutdown".into()).unwrap()).unwrap()
-        );
-    }
-}
-
 pub struct RemoteServer {
     tcp_stream: TcpStream,
 }
@@ -151,5 +115,41 @@ impl Server for RemoteServer {
         write_message(&mut self.tcp_stream, response)?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    fn setup_local_ssh_connection() -> RemoteClient {
+        let remote = RemoteClient::new("knara".to_string(), "localhost".to_string());
+        remote
+    }
+
+    #[test]
+    fn test_remote_server_request_shutdown() {
+        let mut remote = setup_local_ssh_connection();
+        remote.create_connection().unwrap();
+        assert_eq!(
+            "Shutting down!",
+            String::from_utf8(remote.request("shutdown".into()).unwrap()).unwrap()
+        );
+        assert!(remote.request("hello".into()).is_err());
+    }
+
+    #[test]
+    fn test_remote_server_request_ack() {
+        let mut remote = setup_local_ssh_connection();
+        remote.create_connection().unwrap();
+        assert_eq!(
+            "ACK",
+            String::from_utf8(remote.request("SYN".into()).unwrap()).unwrap()
+        );
+        assert_eq!(
+            "Shutting down!",
+            String::from_utf8(remote.request("shutdown".into()).unwrap()).unwrap()
+        );
     }
 }

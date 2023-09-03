@@ -1,12 +1,25 @@
 pub mod client;
-pub mod server;
-pub mod remote;
 pub mod local;
+pub mod remote;
+pub mod server;
 pub mod servicer;
 pub mod sync;
 
 use anyhow::Result;
 use std::io::prelude::*;
+
+pub mod not_rsync_pb {
+    include!(concat!(env!("OUT_DIR"), "/notrsync.rs"));
+}
+
+pub fn to_proto<T>(bytes: Vec<u8>) -> Result<T>
+where
+    T: Default + prost::Message,
+{
+    let decode_res = T::decode(bytes.as_slice())?;
+    eprintln!("Received: {:?}", decode_res);
+    Ok(decode_res)
+}
 
 pub fn read_message_len_header<T>(buf: &mut T) -> Result<u32>
 where

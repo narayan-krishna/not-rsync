@@ -1,20 +1,18 @@
-209827
+384541
 [Server main] Server is up and running at 50051!
-Received a connection from 127.0.0.1:56260!
+Received a connection from 127.0.0.1:51092!
 Attempting to handle connection...
-[Received] Request length of 3 bytes
-Sending 3
-[Received] Request length of 8 bytes
-Sending 18
-[Received] Request length of 59 bytes
-Sending 68
-[Received] Request length of 9 bytes
-Sending 84
-[Server] sent serialized signature
-[Received] Request length of 5 bytes
-Sending 15
-[Received] Request length of 11 bytes
-Sending 14
-[Received] Request length of 8 bytes
-Sending 14
+proceeding to handler
+[Received] Request length of 64 bytes
+Signature request
+Calculating signature for /home/knara/dev/rust/not-rsync/tests/test_files/modified.txt
+Sending 151
+[Received] Request length of 79 bytes
+Patch request
+Attempting to patch /home/knara/dev/rust/not-rsync/tests/test_files/modified.txt with [114, 115, 2, 54, 69, 0, 20, 2, 101, 10, 0]
+Ok("this is the base file\n")
+Sending 2
+[Received] Request length of 2 bytes
+Shutdown request
+Sending 0
 Finished handling connection

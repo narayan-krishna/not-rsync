@@ -1,10 +1,10 @@
 use anyhow::Result;
 use clap::Parser;
+use not_rsync::sync::{self, Location};
 use std::path::PathBuf;
-use rsync_rs::sync::{self, Location};
 
 /// arg might look like
-/// rsync-rs knara@localhost:src/
+/// not_rsync knara@localhost:src/
 ///
 
 #[derive(Parser, Debug)]
@@ -15,7 +15,7 @@ struct Args {
     dest: String,
 }
 
-/// Runs the rsync-rs client for syncing a file to a server.
+/// Runs the not_rsync client for syncing a file to a server.
 fn main() -> Result<()> {
     // parse command line args
     println!("Running client!");
@@ -25,12 +25,12 @@ fn main() -> Result<()> {
         Location::new(
             "knara",
             "localhost",
-            "dev/rust/rsync-rs/tests/test_files/base.txt",
+            "dev/rust/not-rsync/tests/test_files/base.txt",
         ),
         Location::new(
             "knara",
             "localhost",
-            "dev/rust/rsync-rs/tests/test_files/modified.txt",
+            "dev/rust/not-rsync/tests/test_files/modified.txt",
         ),
     )?;
 

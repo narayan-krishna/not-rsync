@@ -1,12 +1,12 @@
 //! Provides structs/APIs for creating local sync clients and servers.
 //! Client and server communicate through mpsc message passing channel.
 
+use super::servicer::Servicer;
 use crate::client::Client;
 use crate::server::Server;
 use anyhow::{anyhow, Result};
-use std::thread;
-use super::servicer::Servicer;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread;
 use std::time::Duration;
 
 pub struct LocalClient {
@@ -59,7 +59,6 @@ impl Client for LocalClient {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

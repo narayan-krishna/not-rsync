@@ -1,0 +1,48 @@
+syntax = "proto3";
+package notrsync;
+
+message ClientMessage {
+  oneof message {
+    SignatureRequest signature_request = 2;
+    PatchRequest patch_request = 3;
+    ShutdownRequest shutdown_request = 4;
+  }
+}
+
+enum MessageType {
+  SIGNATURE_REQUEST = 0;
+  PATCH_REQUEST = 1;
+  SHUTDOWN_REQUEST = 2;
+}
+
+message SignatureRequest {
+  repeated string filepaths = 1;
+}
+
+message SignatureResponse {
+  repeated FileSignature signatures = 1;
+}
+
+message PatchRequest {
+  repeated Delta deltas = 1;
+}
+
+message PatchResponse {
+  bool ok = 1;
+}
+
+message FileSignature {
+  string filepath = 1;
+  bytes content = 2;
+}
+
+message Delta {
+  string filepath = 1;
+  bytes content = 2;
+}
+
+message ShutdownRequest {}
+
+message ShutdownResponse {
+  optional string error = 2;
+}

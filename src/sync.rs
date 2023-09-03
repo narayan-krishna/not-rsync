@@ -1,8 +1,11 @@
+use crate::client::Client;
+use crate::local::LocalClient;
+use crate::not_rsync_pb::*;
+use crate::remote::RemoteClient;
+use crate::to_proto;
 use anyhow::{anyhow, Result};
 use fast_rsync::{diff, Signature};
-use crate::remote::RemoteClient;
-use crate::local::LocalClient;
-use crate::client::Client;
+use prost::Message;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -48,44 +51,77 @@ pub fn sync(src: Location, dest: Location) -> Result<()> {
         ServerType::Local => Box::new(LocalClient::new()),
     };
 
+    let files = vec![dest.filepath];
+
     client.create_connection()?;
-    let _connection_ok = check_connection(&mut client)?;
-    let _send_filepath = send_filepath(&mut client, dest.filepath)?;
-    let signature = request_signature(&mut client)?;
-    let patch: Vec<u8> = calculate_delta(src.filepath, signature)?;
-    let _remote_patch_ok = send_patch(&mut client, patch)?;
-    let _shutdown_ok = request_shutdown(&mut client)?;
+
+    println!("requesting signatures");
+    let sig_res: SignatureResponse = get_signatures(&mut client, files)?;
+    let _patch_res: PatchResponse = patch_remote_files(&mut client, &src.filepath, sig_res.signatures)?;
+
+    // Ask server to gracefully shutdown
+    let _shutdown_response: ShutdownResponse = {
+        let client_msg: ClientMessage = ClientMessage {
+            message: Some(client_message::Message::ShutdownRequest(ShutdownRequest {})),
+        };
+
+        to_proto::<ShutdownResponse>(client.request(client_msg.encode_to_vec())?)?
+    };
 
     Ok(())
 }
 
-fn check_connection(client: &mut Box<dyn Client>) -> Result<()> {
-    assert_eq!(String::from_utf8(client.request("SYN".into())?)?, "ACK");
-    Ok(())
+// parallelize
+/// Request that server patch files with deltas
+fn get_signatures(client: &mut Box<dyn Client>, files: Vec<PathBuf>) -> Result<SignatureResponse> {
+    // TODO: parallelize with rayon
+    // Request file signatures from server
+    let req: SignatureRequest = SignatureRequest {
+        filepaths: files
+            .iter()
+            .map(|f| f.to_str().unwrap().to_string())
+            .collect(),
+    };
+
+    let client_msg: ClientMessage = ClientMessage {
+        message: Some(client_message::Message::SignatureRequest(req)),
+    };
+
+    to_proto::<SignatureResponse>(client.request(client_msg.encode_to_vec())?)
 }
 
-fn send_filepath(client: &mut Box<dyn Client>, filepath: PathBuf) -> Result<()> {
-    assert_eq!(
-        String::from_utf8(client.request("filepath".into())?)?,
-        "ready for filepath"
-    );
-    assert_eq!(
-        String::from_utf8(client.request(filepath.to_str().unwrap().into())?)?,
-        format!("received {}", filepath.to_str().unwrap())
-    );
-    Ok(())
+// parallelize with rayon
+/// Request that server patch files with deltas
+fn patch_remote_files(
+    client: &mut Box<dyn Client>,
+    base_filepath: &PathBuf,
+    signatures: Vec<FileSignature>,
+) -> Result<PatchResponse> {
+    let req: PatchRequest = PatchRequest {
+        deltas: signatures
+            .into_iter()
+            .map(|fs: FileSignature| Delta {
+                filepath: fs.filepath.clone(),
+                content: calculate_delta(
+                    &base_filepath,
+                    Signature::deserialize(fs.content).unwrap(),
+                )
+                .unwrap(),
+            })
+            .collect(),
+    };
+
+    let client_msg: ClientMessage = ClientMessage {
+        message: Some(client_message::Message::PatchRequest(req)),
+    };
+
+    to_proto::<PatchResponse>(client.request(client_msg.encode_to_vec())?)
 }
 
-fn request_signature(client: &mut Box<dyn Client>) -> Result<Signature> {
-    let serialized_signature = client.request("signature".into())?;
-    let deserialized_signature = Signature::deserialize(serialized_signature)?;
-
-    Ok(deserialized_signature)
-}
-
-fn calculate_delta(base_filepath: PathBuf, signature: Signature) -> Result<Vec<u8>> {
-    let mut patch = vec![];
-    let mut file = match File::open(base_filepath) {
+/// calculate delta of a file
+fn calculate_delta(base_filepath: &PathBuf, signature: Signature) -> Result<Vec<u8>> {
+    let mut delta = vec![];
+    let mut file = match File::open(base_filepath.clone()) {
         Err(e) => return Err(anyhow!("Error: {}", e)),
         Ok(file) => file,
     };
@@ -95,28 +131,14 @@ fn calculate_delta(base_filepath: PathBuf, signature: Signature) -> Result<Vec<u
             return Err(anyhow!("Error: {}", e));
         }
         Ok(_) => {
-            diff(&signature.index(), &file_bytes, &mut patch)?;
+            diff(&signature.index(), &file_bytes, &mut delta)?;
         }
     };
 
-    return Ok(patch);
+    return Ok(delta);
 }
 
-fn send_patch(client: &mut Box<dyn Client>, patch: Vec<u8>) -> Result<()> {
-    assert_eq!(
-        String::from_utf8(client.request("patch".into())?)?,
-        "ready for patch"
-    );
-    assert_eq!(String::from_utf8(client.request(patch)?)?, "received patch",);
-
-    Ok(())
-}
-
-fn request_shutdown(client: &mut Box<dyn Client>) -> Result<()> {
-    assert_eq!(
-        String::from_utf8(client.request("shutdown".into())?)?,
-        "Shutting down!"
-    );
-
-    Ok(())
+#[cfg(test)]
+mod sync_test {
+    // TODO: add sync tests
 }
