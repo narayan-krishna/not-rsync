@@ -87,25 +87,18 @@ where
         filepath: String,
         sig_opts: Option<SignatureOptions>,
     ) -> Result<Signature> {
-        let sig_opts = match sig_opts {
-            None => SignatureOptions {
-                block_size: 4,
-                crypto_hash_size: 8,
-            },
-            Some(opts) => opts,
-        };
+        let sig_opts = sig_opts.unwrap_or_else(|| SignatureOptions {
+            block_size: 4,
+            crypto_hash_size: 8,
+        });
 
         let mut file_bytes: Vec<u8> = Vec::new();
+        let mut file = File::open(filepath)?;
+        if let Err(e) = file.read_to_end(&mut file_bytes) {
+            file_bytes.clear();
+            eprintln!("{}", e);
+        }
 
-        let mut file = match File::open(filepath) {
-            Ok(file) => file,
-            Err(e) => {
-                eprintln!("{} -- file doesn't exist. sending an empty signature", e);
-                return Ok(Signature::calculate(&file_bytes, sig_opts));
-            }
-        };
-
-        file.read_to_end(&mut file_bytes)?;
         return Ok(Signature::calculate(&file_bytes, sig_opts));
     }
 

@@ -57,7 +57,8 @@ pub fn sync(src: Location, dest: Location) -> Result<()> {
 
     println!("requesting signatures");
     let sig_res: SignatureResponse = get_signatures(&mut client, files)?;
-    let _patch_res: PatchResponse = patch_remote_files(&mut client, &src.filepath, sig_res.signatures)?;
+    let _patch_res: PatchResponse =
+        patch_remote_files(&mut client, &src.filepath, sig_res.signatures)?;
 
     // Ask server to gracefully shutdown
     let _shutdown_response: ShutdownResponse = {
@@ -121,19 +122,11 @@ fn patch_remote_files(
 /// calculate delta of a file
 fn calculate_delta(base_filepath: &PathBuf, signature: Signature) -> Result<Vec<u8>> {
     let mut delta = vec![];
-    let mut file = match File::open(base_filepath.clone()) {
-        Err(e) => return Err(anyhow!("Error: {}", e)),
-        Ok(file) => file,
-    };
     let mut file_bytes: Vec<u8> = Vec::new();
-    match file.read_to_end(&mut file_bytes) {
-        Err(e) => {
-            return Err(anyhow!("Error: {}", e));
-        }
-        Ok(_) => {
-            diff(&signature.index(), &file_bytes, &mut delta)?;
-        }
-    };
+
+    let mut file = File::open(base_filepath.clone())?;
+    file.read_to_end(&mut file_bytes)?;
+    diff(&signature.index(), &file_bytes, &mut delta)?;
 
     return Ok(delta);
 }

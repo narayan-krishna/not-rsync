@@ -1,6 +1,6 @@
 # not-rsync
 
-not-rsync is a WIP file synchronization tool based on Rsync and the Rsync algorithm, written in Rust. 
+not-rsync is a **WIP** file synchronization tool based on Rsync and the Rsync algorithm, written in Rust. 
 
 While functional, not-rsync needs work on the following:
 
@@ -39,6 +39,3 @@ not-rsync uses Dropbox's `fast_rsync` algorithm implementation, which attempts t
 - [the rsync algorithm](https://www.andrew.cmu.edu/course/15-749/READINGS/required/cas/tridgell96.pdf)
 - [rsync thesis](https://www.samba.org/~tridge/phd_thesis.pdf)
 
-
-#### Optimizations
-use protobufs
