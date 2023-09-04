@@ -19,8 +19,8 @@ not-rsync works locally and remotly, and operates differently depending on the n
 not-rsync aims to use a similar CLI to the original rsync, currently with more limited options
 
 ```bash
-rsync ... SRC ... [USER@]HOST:DEST # synchronize a remote file with local
-rsync ... [USER@]HOST:SRC ... DEST # synchronize a local file with remote
+not-rsync ... SRC ... [USER@]HOST:DEST # synchronize a remote file with local
+not-rsync ... [USER@]HOST:SRC ... DEST # synchronize a local file with remote
 ```
 
 ### Rsync algorithm
