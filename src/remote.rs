@@ -43,7 +43,6 @@ impl RemoteClient {
 }
 
 impl Client for RemoteClient {
-    /// Run the remote server and communicate with it.
     fn create_connection(&mut self) -> Result<()> {
         let sess = self.start_ssh_session()?;
         println!("Launching server!");
@@ -70,7 +69,7 @@ impl Client for RemoteClient {
     }
 
     /// Get response from the server by sending a request
-    fn request(&mut self, request: Vec<u8>) -> Result<Vec<u8>> {
+    fn request_from_bytes(&mut self, request: Vec<u8>) -> Result<Vec<u8>> {
         if let Some(channel) = &mut self.forwarding_channel {
             write_message_len(channel, &request)?;
             write_message(channel, request)?;
@@ -134,9 +133,9 @@ mod tests {
         remote.create_connection().unwrap();
         assert_eq!(
             "Shutting down!",
-            String::from_utf8(remote.request("shutdown".into()).unwrap()).unwrap()
+            String::from_utf8(remote.request_from_bytes("shutdown".into()).unwrap()).unwrap()
         );
-        assert!(remote.request("hello".into()).is_err());
+        assert!(remote.request_from_bytes("hello".into()).is_err());
     }
 
     #[test]
@@ -145,11 +144,11 @@ mod tests {
         remote.create_connection().unwrap();
         assert_eq!(
             "ACK",
-            String::from_utf8(remote.request("SYN".into()).unwrap()).unwrap()
+            String::from_utf8(remote.request_from_bytes("SYN".into()).unwrap()).unwrap()
         );
         assert_eq!(
             "Shutting down!",
-            String::from_utf8(remote.request("shutdown".into()).unwrap()).unwrap()
+            String::from_utf8(remote.request_from_bytes("shutdown".into()).unwrap()).unwrap()
         );
     }
 }

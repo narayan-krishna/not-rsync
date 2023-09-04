@@ -1,16 +1,16 @@
-393975
+26765
 [Server main] Server is up and running at 50051!
-Received a connection from 127.0.0.1:41222!
+Received a connection from 127.0.0.1:47496!
 Attempting to handle connection...
 proceeding to handler
-[Received] Request length of 64 bytes
+[Received] Request length of 38 bytes
 Signature request
-Calculating signature for /home/knara/dev/rust/not-rsync/tests/test_files/modified.txt
-Sending 151
-[Received] Request length of 90 bytes
+Calculating signature for /tmp/test-files.nCik2QA2A0f4/b.txt
+Sending 124
+[Received] Request length of 62 bytes
 Patch request
-Attempting to patch /home/knara/dev/rust/not-rsync/tests/test_files/modified.txt with [114, 115, 2, 54, 69, 0, 8, 10, 116, 104, 101, 32, 98, 97, 115, 101, 32, 102, 69, 20, 4, 0]
-Ok("this is the base file\n")
+Attempting to patch /tmp/test-files.nCik2QA2A0f4/b.txt with [114, 115, 2, 54, 69, 0, 8, 11, 97, 32, 98, 97, 115, 101, 32, 102, 105, 108, 101, 0]
+Ok("this is a base file")
 Sending 2
 [Received] Request length of 2 bytes
 Shutdown request

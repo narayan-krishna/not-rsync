@@ -6,17 +6,34 @@ pub mod servicer;
 pub mod sync;
 
 use anyhow::Result;
+use bytes::Buf;
 use std::io::prelude::*;
 
 pub mod not_rsync_pb {
     include!(concat!(env!("OUT_DIR"), "/notrsync.rs"));
 }
 
+/// Proto trait provides utilties for working with protobufs.
+trait AsProto<T, U>: Buf
+where
+    U: prost::Message + Default,
+{
+    /// Decodes a buffer
+    fn as_proto(&mut self) -> Result<U> {
+        let decode_res = U::decode(self)?;
+        Ok(decode_res)
+    }
+}
+
+impl<T: Buf> AsProto<T, not_rsync_pb::SignatureResponse> for T {}
+impl<T: Buf> AsProto<T, not_rsync_pb::PatchResponse> for T {}
+impl<T: Buf> AsProto<T, not_rsync_pb::ShutdownResponse> for T {}
+
 pub fn to_proto<T>(bytes: Vec<u8>) -> Result<T>
 where
     T: Default + prost::Message,
 {
-    let decode_res = T::decode(bytes.as_slice())?;
+    let decode_res = T::decode(bytes.as_ref())?;
     eprintln!("Received: {:?}", decode_res);
     Ok(decode_res)
 }

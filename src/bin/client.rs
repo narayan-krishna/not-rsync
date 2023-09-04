@@ -6,6 +6,8 @@ use std::path::PathBuf;
 /// arg might look like
 /// not_rsync knara@localhost:src/
 ///
+/// rsync ... SRC ... [USER@]HOST:DEST # synchronize a remote file with local
+/// rsync ... [USER@]HOST:SRC ... DEST # synchronize a local file with remote
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -19,20 +21,14 @@ struct Args {
 fn main() -> Result<()> {
     // parse command line args
     println!("Running client!");
-    // let args = Args::parse();
+    let args = Args::parse();
 
-    sync::sync(
-        Location::new(
-            "knara",
-            "localhost",
-            "dev/rust/not-rsync/tests/test_files/base.txt",
-        ),
-        Location::new(
-            "knara",
-            "localhost",
-            "dev/rust/not-rsync/tests/test_files/modified.txt",
-        ),
-    )?;
+    // check if source or path is dir
+    // can't sync a file to a directionary
+    // can sync a file a file to a file
+    // can sync a directory to a directory
+
+    sync::sync(Location::from_arg(args.src), Location::from_arg(args.dest))?;
 
     Ok(())
 }

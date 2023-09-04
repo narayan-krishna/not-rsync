@@ -3,16 +3,10 @@ package notrsync;
 
 message ClientMessage {
   oneof message {
-    SignatureRequest signature_request = 2;
-    PatchRequest patch_request = 3;
-    ShutdownRequest shutdown_request = 4;
+    SignatureRequest signature_request = 1;
+    PatchRequest patch_request = 2;
+    ShutdownRequest shutdown_request = 3;
   }
-}
-
-enum MessageType {
-  SIGNATURE_REQUEST = 0;
-  PATCH_REQUEST = 1;
-  SHUTDOWN_REQUEST = 2;
 }
 
 message SignatureRequest {

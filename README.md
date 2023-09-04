@@ -4,6 +4,7 @@ not-rsync is a **WIP** file synchronization tool based on Rsync and the Rsync al
 
 While functional, not-rsync needs work on the following:
 
+- [ ] implement atomicity with temp files
 - [ ] more robust integration and unit testing
 - [ ] performance measurement (criterion)
 - [ ] support for (recursive) directory synchronization

@@ -42,7 +42,7 @@ impl Client for LocalClient {
         Ok(())
     }
 
-    fn request(&mut self, request: Vec<u8>) -> Result<Vec<u8>> {
+    fn request_from_bytes(&mut self, request: Vec<u8>) -> Result<Vec<u8>> {
         match (&self.p_send, &self.p_recv) {
             (Some(p_send), Some(p_recv)) => {
                 println!("[Client] Sending: {}", String::from_utf8(request.clone())?);
@@ -99,9 +99,9 @@ mod local_tests {
         local.create_connection().unwrap();
         assert_eq!(
             "Shutting down!",
-            String::from_utf8(local.request("shutdown".into()).unwrap()).unwrap()
+            String::from_utf8(local.request_from_bytes("shutdown".into()).unwrap()).unwrap()
         );
-        assert!(local.request("hello".into()).is_err());
+        assert!(local.request_from_bytes("hello".into()).is_err());
     }
 
     #[test]
@@ -110,11 +110,11 @@ mod local_tests {
         local.create_connection().unwrap();
         assert_eq!(
             "ACK",
-            String::from_utf8(local.request("SYN".into()).unwrap()).unwrap()
+            String::from_utf8(local.request_from_bytes("SYN".into()).unwrap()).unwrap()
         );
         assert_eq!(
             "Shutting down!",
-            String::from_utf8(local.request("shutdown".into()).unwrap()).unwrap()
+            String::from_utf8(local.request_from_bytes("shutdown".into()).unwrap()).unwrap()
         );
     }
 }

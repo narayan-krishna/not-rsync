@@ -2,10 +2,9 @@ use crate::client::Client;
 use crate::local::LocalClient;
 use crate::not_rsync_pb::*;
 use crate::remote::RemoteClient;
-use crate::to_proto;
-use anyhow::{anyhow, Result};
+use crate::AsProto;
+use anyhow::Result;
 use fast_rsync::{diff, Signature};
-use prost::Message;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -24,14 +23,20 @@ pub struct Location {
 
 impl Location {
     pub fn new(username: &str, hostname: &str, filepath: &str) -> Location {
-        let user_prefix = format!("/home/{}", username);
-
         Location {
             username: username.to_string(),
             hostname: hostname.to_string(),
-            filepath: PathBuf::from(user_prefix).join::<PathBuf>(filepath.into()),
+            filepath: PathBuf::from(filepath),
             is_remote: hostname != whoami::hostname() && hostname != "localhost",
         }
+    }
+
+    pub fn from_arg(arg: String) -> Location {
+        let items: Vec<&str> = arg.split(['@', ':']).collect();
+        dbg!(items.clone());
+        assert_eq!(items.len(), 3);
+
+        Self::new(items[0], items[1], items[2])
     }
 }
 
@@ -52,21 +57,20 @@ pub fn sync(src: Location, dest: Location) -> Result<()> {
     };
 
     let files = vec![dest.filepath];
-
     client.create_connection()?;
 
-    println!("requesting signatures");
     let sig_res: SignatureResponse = get_signatures(&mut client, files)?;
     let _patch_res: PatchResponse =
         patch_remote_files(&mut client, &src.filepath, sig_res.signatures)?;
-
-    // Ask server to gracefully shutdown
     let _shutdown_response: ShutdownResponse = {
         let client_msg: ClientMessage = ClientMessage {
             message: Some(client_message::Message::ShutdownRequest(ShutdownRequest {})),
         };
 
-        to_proto::<ShutdownResponse>(client.request(client_msg.encode_to_vec())?)?
+        client
+            .request_from_proto(client_msg)?
+            .as_slice()
+            .as_proto()?
     };
 
     Ok(())
@@ -88,7 +92,8 @@ fn get_signatures(client: &mut Box<dyn Client>, files: Vec<PathBuf>) -> Result<S
         message: Some(client_message::Message::SignatureRequest(req)),
     };
 
-    to_proto::<SignatureResponse>(client.request(client_msg.encode_to_vec())?)
+    // as_proto::<SignatureResponse>(client.request_from_proto(client_msg)?)
+    client.request_from_proto(client_msg)?.as_slice().as_proto()
 }
 
 // parallelize with rayon
@@ -116,7 +121,7 @@ fn patch_remote_files(
         message: Some(client_message::Message::PatchRequest(req)),
     };
 
-    to_proto::<PatchResponse>(client.request(client_msg.encode_to_vec())?)
+    client.request_from_proto(client_msg)?.as_slice().as_proto()
 }
 
 /// calculate delta of a file
