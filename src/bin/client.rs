@@ -1,7 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
 use not_rsync::sync::{self, Location};
-use std::path::PathBuf;
 
 /// arg might look like
 /// not_rsync knara@localhost:src/
@@ -15,6 +14,8 @@ struct Args {
     src: String,
     #[arg(short, long)]
     dest: String,
+    #[arg(long)]
+    ssh: bool,
 }
 
 /// Runs the not_rsync client for syncing a file to a server.
@@ -28,7 +29,11 @@ fn main() -> Result<()> {
     // can sync a file a file to a file
     // can sync a directory to a directory
 
-    sync::sync(Location::from_arg(args.src), Location::from_arg(args.dest))?;
+    sync::sync(
+        Location::from_arg(args.src),
+        Location::from_arg(args.dest),
+        args.ssh,
+    )?;
 
     Ok(())
 }

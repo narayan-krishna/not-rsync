@@ -1,15 +1,16 @@
-26765
+41783
+2023-09-03T22:16:23.760385789-07:00
 [Server main] Server is up and running at 50051!
-Received a connection from 127.0.0.1:47496!
+Received a connection from 127.0.0.1:41130!
 Attempting to handle connection...
 proceeding to handler
 [Received] Request length of 38 bytes
 Signature request
-Calculating signature for /tmp/test-files.nCik2QA2A0f4/b.txt
+Calculating signature for /tmp/test-files.8kPAn4TEHvMh/b.txt
 Sending 124
 [Received] Request length of 62 bytes
 Patch request
-Attempting to patch /tmp/test-files.nCik2QA2A0f4/b.txt with [114, 115, 2, 54, 69, 0, 8, 11, 97, 32, 98, 97, 115, 101, 32, 102, 105, 108, 101, 0]
+Attempting to patch /tmp/test-files.8kPAn4TEHvMh/b.txt with [114, 115, 2, 54, 69, 0, 8, 11, 97, 32, 98, 97, 115, 101, 32, 102, 105, 108, 101, 0]
 Ok("this is a base file")
 Sending 2
 [Received] Request length of 2 bytes

@@ -20,14 +20,22 @@ fn test_client_server_simple() {
 
     assert_eq!(fs::read_to_string(fp1.clone()).unwrap(), contents1);
     let mut cmd = Command::cargo_bin("client").unwrap();
-    cmd.args(&[
-        "--src",
-        format!("knara@localhost:{}", fp1.clone().to_str().unwrap()).as_str(),
-        "--dest",
-        format!("knara@localhost:{}", fp2.clone().to_str().unwrap()).as_str(),
-    ])
-    .assert()
-    .success();
+    let assert = cmd
+        .args(&[
+            "--src",
+            format!("knara@localhost:{}", fp1.clone().to_str().unwrap()).as_str(),
+            "--dest",
+            format!("knara@localhost:{}", fp2.clone().to_str().unwrap()).as_str(),
+            "--ssh",
+        ])
+        .assert();
+
+    print!(
+        "{}",
+        String::from_utf8(assert.get_output().stdout.to_owned()).unwrap()
+    );
+    assert.success();
+
     assert_eq!(
         fs::read_to_string(fp1).unwrap(),
         fs::read_to_string(fp2).unwrap()

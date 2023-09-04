@@ -1,3 +1,4 @@
+use chrono;
 use not_rsync::remote::RemoteServer;
 use not_rsync::server::Server;
 use std::net::TcpListener;
@@ -11,6 +12,7 @@ const PORT: u16 = 50051;
 fn main() {
     let tcp_listener = TcpListener::bind(format!("localhost:{}", PORT)).unwrap();
     println!("{:0width$}", process::id(), width = 5);
+    println!("{:?}", chrono::offset::Local::now());
     println!("[Server main] Server is up and running at {}!", PORT);
     let (send, recv) = mpsc::channel();
 

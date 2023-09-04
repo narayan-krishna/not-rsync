@@ -51,15 +51,21 @@ impl Client for RemoteClient {
         if let Some(session_channel) = &mut self.session_channel {
             session_channel.exec(LAUNCH_CMD)?;
 
+            println!("Checing server pid");
             let mut server_ack_pid: &mut [u8] = &mut [0; 5];
             session_channel.read_exact(&mut server_ack_pid)?;
-            let server_pid = String::from_utf8_lossy(&server_ack_pid).parse::<u32>()?;
+            let server_pid = String::from_utf8_lossy(&server_ack_pid)
+                .parse::<u32>()
+                .map(|s| Some(s))
+                .unwrap_or(None);
 
-            self.server_pid = Some(server_pid);
+            self.server_pid = server_pid;
             println!(
                 "Server is running at {} with pid {}",
                 SERVER_PORT,
-                self.server_pid.unwrap()
+                self.server_pid
+                    .map(|pid| pid.to_string())
+                    .unwrap_or("UNABLE TO DEBUG PID".to_string())
             );
 
             self.forwarding_channel =

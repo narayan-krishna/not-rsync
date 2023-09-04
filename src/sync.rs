@@ -41,14 +41,20 @@ impl Location {
 }
 
 /// Perform file synchronization operations between client and server.
-pub fn sync(src: Location, dest: Location) -> Result<()> {
+pub fn sync(src: Location, dest: Location, ssh: bool) -> Result<()> {
     println!("remote dest: {}", dest.is_remote);
     println!("full dest filepath: {}", dest.filepath.to_str().unwrap());
     println!("full src filepath: {}", src.filepath.to_str().unwrap());
 
-    let server_type = match dest.is_remote {
-        true => ServerType::Remote,
-        false => ServerType::Remote,
+    let server_type = match dest.is_remote || ssh == true {
+        true => {
+            println!("Server type: Remote");
+            ServerType::Remote
+        }
+        false => {
+            println!("Server type: Local");
+            ServerType::Local
+        }
     };
 
     let mut client: Box<dyn Client> = match server_type {
@@ -59,7 +65,10 @@ pub fn sync(src: Location, dest: Location) -> Result<()> {
     let files = vec![dest.filepath];
     client.create_connection()?;
 
+    println!("created connecton, requesting signatures");
     let sig_res: SignatureResponse = get_signatures(&mut client, files)?;
+
+    println!("requesting patch.");
     let _patch_res: PatchResponse =
         patch_remote_files(&mut client, &src.filepath, sig_res.signatures)?;
     let _shutdown_response: ShutdownResponse = {
