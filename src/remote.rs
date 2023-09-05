@@ -1,10 +1,11 @@
 use crate::{client::Client, *};
 use crate::{server::Server, servicer::Servicer};
 use anyhow::{anyhow, Result};
+use log::{info, warn};
 use ssh2::{Channel, Session};
 use std::net::TcpStream;
 
-const LAUNCH_CMD: &str = "cd /home/knara/dev/rust/not-rsync/ && cargo run --bin remote_server | tee /home/knara/dev/rust/not-rsync/logs/output.txt &";
+const LAUNCH_CMD: &str = "cd /home/knara/dev/rust/not-rsync/ && RUST_LOG=info cargo run --bin remote_server 2> /home/knara/dev/rust/not-rsync/logs/remote_server.txt &";
 const SERVER_PORT: u16 = 50051;
 
 pub struct RemoteClient {
@@ -27,7 +28,7 @@ impl RemoteClient {
     }
 
     fn start_ssh_session(&self) -> Result<Session> {
-        println!("Attempting to start ssh session");
+        info!("attempting to start ssh session");
         let mut sess: Session = Session::new()?;
 
         let tcp = TcpStream::connect(format!("{}:22", self.hostname)).unwrap();
@@ -36,7 +37,7 @@ impl RemoteClient {
 
         sess.userauth_agent(&self.username)?; // TODO: automatically determine remote username
         assert!(sess.authenticated());
-        println!("Session authenticated");
+        info!("session authenticated");
 
         Ok(sess)
     }
@@ -45,13 +46,13 @@ impl RemoteClient {
 impl Client for RemoteClient {
     fn create_connection(&mut self) -> Result<()> {
         let sess = self.start_ssh_session()?;
-        println!("Launching server!");
+        info!("launching server!");
         self.session_channel = Some(sess.channel_session()?);
 
         if let Some(session_channel) = &mut self.session_channel {
             session_channel.exec(LAUNCH_CMD)?;
 
-            println!("Checing server pid");
+            info!("checing server pid");
             let mut server_ack_pid: &mut [u8] = &mut [0; 5];
             session_channel.read_exact(&mut server_ack_pid)?;
             let server_pid = String::from_utf8_lossy(&server_ack_pid)
@@ -60,13 +61,10 @@ impl Client for RemoteClient {
                 .unwrap_or(None);
 
             self.server_pid = server_pid;
-            println!(
-                "Server is running at {} with pid {}",
-                SERVER_PORT,
-                self.server_pid
-                    .map(|pid| pid.to_string())
-                    .unwrap_or("UNABLE TO DEBUG PID".to_string())
-            );
+            match self.server_pid.map(|pid| pid.to_string()) {
+                Some(pid) => info!("Server is running at {} with pid {}", SERVER_PORT, pid),
+                None => warn!("Server is running at {}, UNABLE TO DECODE PID", SERVER_PORT),
+            }
 
             self.forwarding_channel =
                 Some(sess.channel_direct_tcpip("localhost", SERVER_PORT, None)?);
@@ -99,12 +97,12 @@ impl RemoteServer {
 
 impl Server for RemoteServer {
     fn run(&mut self) -> Result<()> {
-        println!("Attempting to handle connection...");
+        info!("attempting to handle connection...");
 
         let mut servicer = Servicer::new(self);
         servicer.handle()?;
 
-        println!("Finished handling connection");
+        info!("finished handling connection");
         Ok(())
     }
 

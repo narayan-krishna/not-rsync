@@ -7,6 +7,7 @@ use fast_rsync::{apply, Signature, SignatureOptions};
 use prost::Message;
 use std::fs::{File, OpenOptions};
 use std::io::{prelude::*, SeekFrom};
+use log::{error, info};
 
 pub struct Servicer<'a, T>
 where
@@ -24,32 +25,32 @@ where
     }
 
     pub fn handle(&mut self) -> Result<()> {
-        println!("proceeding to handler");
+        info!("proceeding to handler");
         let mut shutdown: bool = false;
         while !shutdown {
             let req: ClientMessage = ClientMessage::decode(self.server.receive()?.as_slice())?;
 
             match req.message {
                 None => {
-                    println!("Didn't receive a message type");
+                    error!("didn't receive a message type");
                     shutdown = true;
                     let res = ShutdownResponse {
-                        error: Some("Couldn't deduce message type".to_string()),
+                        error: Some("couldn't deduce message type".to_string()),
                     };
                     self.server.send(res.encode_to_vec())?;
                 }
                 Some(client_message::Message::SignatureRequest(req)) => {
-                    println!("Signature request");
+                    info!("signature request");
                     let res = self.get_file_signatures(req)?;
                     self.server.send(res.encode_to_vec())?;
                 }
                 Some(client_message::Message::PatchRequest(req)) => {
-                    println!("Patch request");
+                    info!("patch request");
                     let res = self.patch_files(req)?;
                     self.server.send(res.encode_to_vec())?;
                 }
                 Some(client_message::Message::ShutdownRequest(_)) => {
-                    println!("Shutdown request");
+                    info!("shutdown request");
                     shutdown = true;
                     self.server
                         .send(ShutdownResponse { error: None }.encode_to_vec())?;
@@ -64,7 +65,7 @@ where
         let mut res = SignatureResponse::default();
         // parallelize
         for fp in req.filepaths.into_iter() {
-            println!("Calculating signature for {}", fp);
+            info!("calculating signature for {}", fp);
             let mut sig: FileSignature = FileSignature::default();
             sig.filepath = fp.clone();
             sig.content = Self::calculate_signature(fp, None)?.serialized().to_vec();
@@ -96,7 +97,7 @@ where
         let mut file = File::open(filepath)?;
         if let Err(e) = file.read_to_end(&mut file_bytes) {
             file_bytes.clear();
-            eprintln!("{}", e);
+            error!("{}", e);
         }
 
         return Ok(Signature::calculate(&file_bytes, sig_opts));
@@ -105,7 +106,7 @@ where
     fn patch(filepath: String, delta: Vec<u8>) -> Result<()> {
         let mut patched_out = vec![];
 
-        println!("Attempting to patch {} with {:?}", filepath, delta);
+        info!("attempting to patch {} with {:?}", filepath, delta);
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -114,13 +115,12 @@ where
         let mut file_bytes: Vec<u8> = Vec::new();
         file.read_to_end(&mut file_bytes)?;
         apply(&file_bytes, &delta, &mut patched_out)?;
-        println!("{:?}", String::from_utf8(patched_out.clone()));
 
         file.seek(SeekFrom::Start(0))?;
         file.set_len(0)
-            .unwrap_or_else(|e| println!("some whack error{e}"));
+            .unwrap_or_else(|e| error!("some whack error{e}"));
         file.write_all(&patched_out)
-            .unwrap_or_else(|e| println!("couldn't write to file: {e}"));
+            .unwrap_or_else(|e| error!("couldn't write to file: {e}"));
 
         Ok(())
     }

@@ -5,6 +5,7 @@ use super::servicer::Servicer;
 use crate::client::Client;
 use crate::server::Server;
 use anyhow::{anyhow, Result};
+use log::{error, trace, info};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 use std::time::Duration;
@@ -45,17 +46,23 @@ impl Client for LocalClient {
     fn request_from_bytes(&mut self, request: Vec<u8>) -> Result<Vec<u8>> {
         match (&self.p_send, &self.p_recv) {
             (Some(p_send), Some(p_recv)) => {
-                println!("[Client] Sending: {}", String::from_utf8(request.clone())?);
+                trace!("client sending {}", String::from_utf8(request.clone())?);
                 p_send.send(request)?;
                 let response = p_recv.recv_timeout(Duration::from_secs(10))?;
-                println!(
-                    "[Client] Got response: {}",
+                trace!(
+                    "client got response: {}",
                     String::from_utf8(response.clone())
-                        .unwrap_or("Response can't be decoded".to_string())
+                        .unwrap_or("response can't be decoded".to_string())
                 );
                 return Ok(response);
             }
-            _ => return Err(anyhow!("Sender/receiver not initialized")),
+            _ => {
+                return {
+                    let err_string: &str = "sender/receiver not initalized";
+                    error!("{}", err_string);
+                    Err(anyhow!(err_string))
+                }
+            }
         }
     }
 }
@@ -75,7 +82,7 @@ impl Server for LocalServer {
     fn run(&mut self) -> Result<()> {
         let mut servicer = Servicer::new(self);
         servicer.handle()?;
-        println!("Finished handling connection");
+        info!("finished handling connection");
         Ok(())
     }
 

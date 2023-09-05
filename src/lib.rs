@@ -7,6 +7,7 @@ pub mod sync;
 
 use anyhow::Result;
 use bytes::Buf;
+use log::trace;
 use std::io::prelude::*;
 
 pub mod not_rsync_pb {
@@ -21,6 +22,7 @@ where
     /// Decodes a buffer
     fn as_proto(&mut self) -> Result<U> {
         let decode_res = U::decode(self)?;
+        trace!("decoded as proto: {:?}", decode_res);
         Ok(decode_res)
     }
 }
@@ -29,15 +31,6 @@ impl<T: Buf> AsProto<T, not_rsync_pb::SignatureResponse> for T {}
 impl<T: Buf> AsProto<T, not_rsync_pb::PatchResponse> for T {}
 impl<T: Buf> AsProto<T, not_rsync_pb::ShutdownResponse> for T {}
 
-pub fn to_proto<T>(bytes: Vec<u8>) -> Result<T>
-where
-    T: Default + prost::Message,
-{
-    let decode_res = T::decode(bytes.as_ref())?;
-    eprintln!("Received: {:?}", decode_res);
-    Ok(decode_res)
-}
-
 pub fn read_message_len_header<T>(buf: &mut T) -> Result<u32>
 where
     T: Read,
@@ -45,7 +38,7 @@ where
     let mut request_len_bytes: [u8; 4] = [0u8; 4];
     buf.read_exact(&mut request_len_bytes)?;
     let request_len = u32::from_be_bytes(request_len_bytes);
-    println!("[Received] Request length of {} bytes", request_len);
+    trace!("received request length: {} bytes", request_len);
 
     Ok(request_len)
 }
@@ -65,7 +58,7 @@ where
     T: Write,
 {
     buf.write(&(message.len() as u32).to_be_bytes())?;
-    println!("Sending {}", message.len() as u32);
+    trace!("sending: {}", message.len() as u32);
 
     Ok(())
 }

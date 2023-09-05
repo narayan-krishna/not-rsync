@@ -1,0 +1,17 @@
+   Compiling not-rsync v0.1.0 (/home/knara/dev/rust/not-rsync)
+    Finished dev [unoptimized + debuginfo] target(s) in 3.04s
+     Running `target/debug/remote_server`
+[2023-09-05T06:22:31Z INFO  remote_server] 2023-09-04T23:22:31.640712266-07:00
+[2023-09-05T06:22:31Z INFO  remote_server] starting server
+[2023-09-05T06:22:31Z INFO  remote_server] server is up and running at 50051!
+[2023-09-05T06:22:31Z INFO  remote_server] received a connection from 127.0.0.1:56340!
+[2023-09-05T06:22:31Z INFO  not_rsync::remote] attempting to handle connection...
+[2023-09-05T06:22:31Z INFO  not_rsync::servicer] proceeding to handler
+[2023-09-05T06:22:31Z INFO  not_rsync::servicer] signature request
+[2023-09-05T06:22:31Z INFO  not_rsync::servicer] calculating signature for /tmp/test-files.j8s1aqicUkEL/b.txt
+[2023-09-05T06:22:31Z INFO  not_rsync::servicer] patch request
+[2023-09-05T06:22:31Z INFO  not_rsync::servicer] attempting to patch /tmp/test-files.j8s1aqicUkEL/b.txt with [114, 115, 2, 54, 69, 0, 8, 11, 97, 32, 98, 97, 115, 101, 32, 102, 105, 108, 101, 0]
+[2023-09-05T06:22:31Z INFO  not_rsync::servicer] shutdown request
+[2023-09-05T06:22:31Z INFO  not_rsync::remote] finished handling connection
+[2023-09-05T06:22:32Z INFO  remote_server] found a connection after the timouet. nice!
+[2023-09-05T06:22:32Z INFO  remote_server] shutting down

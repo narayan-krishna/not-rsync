@@ -1,11 +1,16 @@
 //! integration tests focused around client connecting to remote server
 
+mod common;
+
 use assert_cmd::Command;
+use log::info;
 use std::fs;
 use test_files::TestFiles;
 
 #[test]
 fn test_client_server_simple() {
+    common::init();
+
     let (file1, contents1) = ("a.txt", "this is a base file");
     let (file2, contents2) = ("b.txt", "this is a modified file");
 
@@ -15,10 +20,11 @@ fn test_client_server_simple() {
     let fp1 = temp_dir.path().join(file1);
     let fp2 = temp_dir.path().join(file2);
 
-    dbg!(fp1.clone());
-    dbg!(fp2.clone());
-
-    assert_eq!(fs::read_to_string(fp1.clone()).unwrap(), contents1);
+    info!("file 2 start: {}", fs::read_to_string(fp2.clone()).unwrap());
+    assert_ne!(
+        fs::read_to_string(fp1.clone()).unwrap(),
+        fs::read_to_string(fp2.clone()).unwrap()
+    );
     let mut cmd = Command::cargo_bin("client").unwrap();
     let assert = cmd
         .args(&[
@@ -30,12 +36,13 @@ fn test_client_server_simple() {
         ])
         .assert();
 
-    print!(
+    info!(
         "{}",
-        String::from_utf8(assert.get_output().stdout.to_owned()).unwrap()
+        String::from_utf8(assert.get_output().stderr.to_owned()).unwrap()
     );
     assert.success();
 
+    info!("file 2 end: {}", fs::read_to_string(fp2.clone()).unwrap());
     assert_eq!(
         fs::read_to_string(fp1).unwrap(),
         fs::read_to_string(fp2).unwrap()

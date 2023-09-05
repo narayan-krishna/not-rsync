@@ -5,6 +5,7 @@ use crate::remote::RemoteClient;
 use crate::AsProto;
 use anyhow::Result;
 use fast_rsync::{diff, Signature};
+use log::info;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -14,6 +15,7 @@ enum ServerType {
     Remote,
 }
 
+#[derive(Debug)]
 pub struct Location {
     username: String,
     hostname: String,
@@ -33,26 +35,23 @@ impl Location {
 
     pub fn from_arg(arg: String) -> Location {
         let items: Vec<&str> = arg.split(['@', ':']).collect();
-        dbg!(items.clone());
         assert_eq!(items.len(), 3);
-
         Self::new(items[0], items[1], items[2])
     }
 }
 
 /// Perform file synchronization operations between client and server.
 pub fn sync(src: Location, dest: Location, ssh: bool) -> Result<()> {
-    println!("remote dest: {}", dest.is_remote);
-    println!("full dest filepath: {}", dest.filepath.to_str().unwrap());
-    println!("full src filepath: {}", src.filepath.to_str().unwrap());
+    info!("source: {:?}", src);
+    info!("dest: {:?}", dest);
 
     let server_type = match dest.is_remote || ssh == true {
         true => {
-            println!("Server type: Remote");
+            info!("server type: remote");
             ServerType::Remote
         }
         false => {
-            println!("Server type: Local");
+            info!("server type: local");
             ServerType::Local
         }
     };
@@ -65,12 +64,13 @@ pub fn sync(src: Location, dest: Location, ssh: bool) -> Result<()> {
     let files = vec![dest.filepath];
     client.create_connection()?;
 
-    println!("created connecton, requesting signatures");
+    info!("created connecton, requesting signatures");
     let sig_res: SignatureResponse = get_signatures(&mut client, files)?;
 
-    println!("requesting patch.");
+    info!("requesting patch");
     let _patch_res: PatchResponse =
         patch_remote_files(&mut client, &src.filepath, sig_res.signatures)?;
+    info!("requesting shutdown");
     let _shutdown_response: ShutdownResponse = {
         let client_msg: ClientMessage = ClientMessage {
             message: Some(client_message::Message::ShutdownRequest(ShutdownRequest {})),
